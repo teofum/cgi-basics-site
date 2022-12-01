@@ -1,0 +1,82 @@
+---
+import type { MarkdownLayoutProps } from 'astro';
+import Arrow from '../components/icon/Arrow.astro';
+import Strong from '../components/Strong.astro';
+import '../styles/globals.css';
+import capitalize from '../utils/capitalize';
+
+type Props = MarkdownLayoutProps<{
+	nextSlug?: string;
+}>;
+
+const { frontmatter, url } = Astro.props;
+
+// Expects URL to be of format 1-01-post-title
+const slug = url?.split('/')[2] ?? 'X-XX-Unknown';
+const [ partNumber, lessonNumber, ...titleWords ] = slug!.split('-');
+const title = capitalize(titleWords.join(' '));
+
+const nextSlug = frontmatter.nextSlug ?? 'X-XX-Unknown';
+const [ nextPartNumber, nextLessonNumber, ...nextWords ] = nextSlug!.split('-');
+const nextTitle = capitalize(nextWords.join(' '));
+---
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+	</head>
+	<body class="px-6 sm:px-16">
+		<article class="mx-auto max-w-2xl py-16">
+			<header>
+				<span class="text-gray-500">
+					Lesson {partNumber}-{lessonNumber}
+				</span>
+				<h1 class="
+					pb-6 sm:pb-8
+					text-5xl sm:text-6xl font-bold tracking-tight text-gradient"
+				>
+					{title}
+				</h1>
+			</header>
+
+			<main>
+				<slot />
+			</main>
+
+			<footer class="mt-24 mb-16 text-center flex flex-col">
+				<div class="pb-4 text-5xl font-bold tracking-tight text-gradient">
+					Lesson complete
+				</div>
+				<div class="mb-12">
+					Congratulations! You have completed lesson 
+					<Strong class="whitespace-nowrap">{partNumber}-{lessonNumber} — {title}</Strong>
+				</div>
+
+				<a href={nextSlug} class="
+					self-end flex flex-row align-center gap-8 py-6 px-8 overflow-hidden
+					border border-gray-200 rounded-lg
+					hover:bg-gray-50 transition"
+				>
+					<div class="text-left">
+						<Strong>Next up</Strong>
+						<div class="text-gray-500">
+							Lesson {nextPartNumber}-{nextLessonNumber} — {nextTitle}
+						</div>
+					</div>
+
+					<div class="
+						text-blue-600 text-4xl rounded-full border border-blue-600
+						flex items-center justify-center w-12 h-12"
+					>
+						<Arrow class="fill-current" />
+					</div>
+				</a>
+			</footer>
+		</article>
+	</body>
+</html>

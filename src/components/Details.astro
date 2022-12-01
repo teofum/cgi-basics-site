@@ -1,0 +1,25 @@
+---
+interface Props {
+  title: string;
+  emoji: string;
+}
+
+const { title, emoji } = Astro.props;
+---
+
+<details class="border border-gray-200 rounded-lg overflow-hidden">
+  <summary class="
+    px-4 py-3
+    hover:cursor-pointer hover:bg-gray-50
+    flex flex-row items-center gap-2
+    after:ml-auto after:text-sm after:text-blue-500 hover:after:text-blue-700
+    after:content-expand-collapse after:whitespace-nowrap
+    select-none transition after:transition"
+  >
+    <span class="text-xl">{emoji}</span>
+    <span class="font-semibold">{title}</span>
+  </summary>
+  <div class="p-4 border-t border-gray-200 space-content">
+    <slot />
+  </div>
+</details>

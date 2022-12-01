@@ -1,3 +1,9 @@
 {
-  "editor.defaultFormatter": "vscode.typescript-language-features"
+  "editor.defaultFormatter": "vscode.typescript-language-features",
+  "[css]": {
+    "editor.defaultFormatter": "vscode.css-language-features"
+  },
+  "[astro]": {
+    "editor.defaultFormatter": "astro-build.astro-vscode"
+  }
 }

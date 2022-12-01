@@ -1,0 +1,31 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title } = Astro.props;
+---
+
+<div class="border border-gray-200 rounded-lg overflow-hidden">
+  {title && (
+    <div class="border-b border-gray-200 px-4 py-3 text-sm text-gray-600">
+      {title}
+    </div>
+  )}
+
+  <div class="bg-gray-50 p-4">
+    <slot />
+  </div>
+
+  {Astro.slots.has('result') && (
+    <div class="
+      border-b border-t border-gray-200 px-4 py-3 text-sm text-gray-600"
+    >
+      Result
+    </div>
+
+    <div class="bg-gray-50">
+      <slot name="result" />
+    </div>
+  )}
+</div>

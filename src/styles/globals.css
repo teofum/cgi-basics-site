@@ -1,0 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css');
+
+* {
+  @apply box-border;
+}
+
+:root {
+  font-family: 'Inter', -apple-system, 'Helvetica Neue', sans-serif;
+  @apply text-gray-900;
+}
+
+code,
+pre {
+  font-family: 'DM Mono', monospace;
+}
+
+/* Common effects */
+.text-gradient {
+  @apply text-transparent bg-clip-text bg-gradient-to-br from-sky-500 via-blue-600 to-blue-800;
+}
+
+/* Only affect code outside a <pre> element, aka inline */
+:not(pre)>code {
+  @apply text-blue-800;
+}
+
+article main>*+*,
+.space-content>*+* {
+  @apply mt-4;
+}
+
+/* KaTeX math styles */
+article div.math>.katex-display>.katex {
+  @apply text-left ml-4 sm:ml-12;
+}
+
+article div.math .katex-html {
+  @apply py-2;
+}
+
+article span.math-inline>.katex {
+  @apply text-lg leading-tight whitespace-nowrap;
+}
+
+article .katex-html {
+  @apply overflow-x-auto overflow-y-visible;
+}
+
+/* Some things Tailwind can't handle */
+.after\:content-expand-collapse::after {
+  --tw-content: 'Read more';
+}
+
+[open] .after\:content-expand-collapse::after {
+  --tw-content: 'Close';
+}
+
+ul {
+  @apply list-disc list-outside ml-4 marker:text-blue-500 marker:text-lg marker:leading-none;
+}
+
+li {
+  @apply mt-2;
+}

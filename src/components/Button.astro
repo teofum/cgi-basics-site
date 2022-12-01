@@ -1,0 +1,20 @@
+---
+interface Props {
+  variant?: 'filled' | 'outlined' | 'text';
+  classnames?: string;
+}
+
+const classes = {
+  common: 'font-medium leading-normal text-center rounded-md px-6 py-2 transition',
+  filled: 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white',
+  outlined: 'text-blue-700 hover:bg-blue-50 active:bg-blue-100 border border-blue-600',
+  text: 'text-blue-700 hover:bg-blue-50 active:bg-blue-100',
+}
+
+const { classnames, variant = 'text' }  = Astro.props;
+const buttonClasses = [classes.common, classes[variant], classnames].join(' ');
+---
+
+<button class={buttonClasses}>
+  <slot class="" />
+</button>
