@@ -1,0 +1,14 @@
+---
+const { caption, ...props } = Astro.props;
+---
+
+<picture class="w-full flex flex-col items-center my-8" {...props}>
+  <div
+    class="
+      w-full max-w-sm flex
+      rounded-lg border border-gray-200 overflow-hidden"
+  >
+    <slot />
+  </div>
+  {caption && <caption>{caption}</caption>}
+</picture>

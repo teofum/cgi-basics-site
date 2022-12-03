@@ -40,12 +40,20 @@ article div.math .katex-html {
   @apply py-2;
 }
 
-article span.math-inline>.katex {
-  @apply text-lg leading-tight whitespace-nowrap;
+article span.math-inline > .katex {
+  @apply text-xl leading-3 whitespace-nowrap;
+}
+
+article span.math-inline > .katex > .katex-html {
+  @apply max-h-4;
 }
 
 article .katex-html {
   @apply overflow-x-auto overflow-y-visible;
+}
+
+article .katex-html .mspace.newline {
+  @apply h-3;
 }
 
 /* Some things Tailwind can't handle */

@@ -5,6 +5,7 @@ nextSlug: 1-03-wireframes
 import Details from '../../components/Details.astro';
 import CodeBlock from '../../components/CodeBlock.astro';
 import Callout from '../../components/Callout.astro';
+import PictureFrame from '../../components/PictureFrame.astro';
 
 import replacements from '../../components/replace';
 export const components = replacements;
@@ -30,13 +31,13 @@ Next, we need to figure out exactly which points make up the line from start to 
 
 ## Defining a line
 
-Any line can be defined by a linear function $y = mx + b$, where `m` is the slope, or how much `y` changes when `x` increases by one. We already have the `x` and `y` values of the starting and ending points, so if we can figure out the slope we'll be able to interpolate `y` for any `x` value in between. Getting the slope of a linear function from two points is simple, as it's just the change in `y` over a unit of `x`:
+Any line can be defined by a linear function $y = mx + b$, where $m$ is the slope, or the change in $y$ when $x$ increases by one. We already have the $x$ and $y$ values of the starting and ending points, so if we can figure out the slope we'll be able to interpolate $y$ for any $x$ value in between. Getting the slope of a linear function from two points is simple, as it's just the change in $y$ over a unit of $x$:
 
 $$
 m = \frac{dy}{dx} = \frac{y_1 - y_0}{x_1 - x_0}
 $$
 
-Now we have that, we can figure out `y` for every value of `x` between start and end:
+Now we have that, we can figure out $y$ for every value of $x$ between start and end:
 
 <CodeBlock>
 ```typescript
@@ -54,7 +55,7 @@ for (let x = x0; x <= x1; x++) {
 ```
 </CodeBlock>
 
-This almost works, but we need `y` to be an integer number. Instead of adding to it on every iteration, we can keep track of the *error*, or distance from the actual `y`, and increment by one if it's greater than 0.5:
+This almost works, but we need $y$ to be an integer number. Instead of adding to it on every iteration, we can keep track of the *error*, or distance from the actual $y$, and increment by one if it's greater than 0.5:
 
 <CodeBlock>
 ```typescript
@@ -76,6 +77,22 @@ for (let x = x0; x <= x1; x++) {
 }
 ```
 </CodeBlock>
+
+We can try this out right now. Let's add some code to our `render()` function:
+
+<CodeBlock title="renderer.ts">
+```typescript
+public render() {
+  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 300 }, { r: 1, g: 0, b: 0 });
+  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 200 }, { r: 0, g: 1, b: 0 });
+  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 100 }, { r: 0, g: 0, b: 1 });
+}
+```
+
+<div slot="result">![Three colored lines on a black screen](/img/02-lines/lines-1.png)</div>
+</CodeBlock>
+
+It works! We can give the function two points, and it will figure out the rest for us.
 
 ## Bresenham's algorithm
 
@@ -102,7 +119,7 @@ for (let x = x0; x <= x1; x++) {
 ```
 </CodeBlock>
 
-The changes can seem rather arbitrary, but the two functions are mathematically equivalent. You don't need to understand all of the math behind it, but if you're interested (and not afraid of a little math), check out the explanation below.
+The changes can seem rather arbitrary, but the two functions are doing the exact same thing. You don't need to understand all of the math behind it, but if you're interested (and not afraid of a little math), check out the explanation below.
 
 <Details emoji="🤿" title="Deep dive: Bresenham's line algorithm">
   Bresenham's algorithm works with a slightly different definition of a line than we've been using. The starting point is the same:
@@ -123,7 +140,7 @@ The changes can seem rather arbitrary, but the two functions are mathematically 
   \end{aligned}
   $$
 
-  This equation can then be interpreted as a function that takes both `x` and `y` as parameters. We also know the value of `b`, so we can replace that now:
+  This equation can then be interpreted as a function that takes both $x$ and $y$ as parameters. We also know the value of $b$, so we can replace that now:
 
   $$
   \begin{aligned}
@@ -133,15 +150,15 @@ The changes can seem rather arbitrary, but the two functions are mathematically 
   \end{aligned}
   $$
 
-  Now we have our line defined in terms of a function that takes `x` and `y`: the point is in the line only if $f(x, y) = 0$.
+  Now we have our line defined in terms of a function that takes $x$ and $y$: the point is in the line only if $f(x, y) = 0$.
 
-  Then, knowing that for a given point $f(x, y) = 0$ (meaning the point is in the line) and $x \neq x_1$, we need to find out whether the next `y` should increase or not. We can do that by checking the midpoint between `y` and `y + 1`:
+  Then, knowing that for a given point $f(x, y) = 0$ (meaning the point is in the line) and $x \neq x_1$, we need to find out whether the next $y$ should increase or not. We can do that by checking the midpoint between $y$ and $y + 1$:
 
   $$
   f(x + 1, y + \frac{1}{2})
   $$
 
-  Because $f(x,y)$ decreases as `y` increases, we know that if the result is positive, we have to increase 'y' to get closer to 0, thus $f(x + 1, y + 1) = 0$, and if it's negative, the opposite is true and $f(x + 1, y) = 0$.
+  Because $f(x,y)$ decreases as $y$ increases, we know that if the result is positive, we have to increase $y$ to get closer to 0, thus $f(x + 1, y + 1) = 0$, and if it's negative, the opposite is true and $f(x + 1, y) = 0$.
 
   Implementing it this way we end up with the following code:
 
@@ -262,22 +279,6 @@ The changes can seem rather arbitrary, but the two functions are mathematically 
   And that's it! We've arrived at the exact same code we presented before. Hopefully now you have a better understanding of why this code is written as it is.
 </Details>
 
-We can try this out right now. Let's add some code to our `render()` function:
-
-<CodeBlock title="renderer.ts">
-```typescript
-public render() {
-  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 300 }, { r: 1, g: 0, b: 0 });
-  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 200 }, { r: 0, g: 1, b: 0 });
-  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 100 }, { r: 0, g: 0, b: 1 });
-}
-```
-
-<div slot="result">![Three colored lines on a black screen](/img/02-lines/lines-1.png)</div>
-</CodeBlock>
-
-
-
 ## Extending the algorithm
 
 We've finally reached a functional solution, but it's not quite there yet. In its current form, the algorithm is very limited. You may have noticed the problems by now:
@@ -325,13 +326,132 @@ for (;;) { // Loop until break
 ```
 </CodeBlock>
 
-This version does away with iterating over a "master" axis, and instead calculates error over both axes. The code can look a bit confusing, but it's actually rather simple:
+This version does away with iterating over a "master" axis, and instead accumulates error over both axes. It also stores the sign separate from the distances, so it works in every direction. For a more detailed explanation of this algorithm, read on below.
 
-- Distance over the `y` axis is inverted. `error` starts off as the sum of the `x` and (inverted) `y` distance to cover.
-- In every iteration, we calculate the double of the error (`e2`). This is the same as dividing the other side of the equation by two, but multiplication is faster than division.
-  - If it's *greater than or equal to* `dy` (remember it's inverted, so this means it's closer to 0) we're close enough to the line on `y`, so we advance on the `x` axis.
-  - If it's *less than or equal to* `dx` it means we're close on `x`, so we advance on `y`.
-  - Notice how error can never be both less than `dy` (a negative number) and greater than `dx` (a positive number), so we'll always move one pixel towards the end point in at least one of the two directions.
+<Details emoji="🤿" title="Deep dive: Generalized Bresenham's algorithm">
+  For the algorithm to work in all directions, we need to use absolute values for $dx$ and $dy$. We'll keep track of the sign as well, so we know which way to move towards the end point $(x_1, y_1)$.
+
+  $$
+  dx = |x_1 - x_0|\\
+  dy = |y_1 - y_0|\\
+  s_x = sign(x_1 - x_0)\\
+  s_y = sign(y_1 - y_0)\\
+  $$
+
+  First, we start by drawing $(x_0, y_0)$. This point is always in the line, so the start is the same as always. Next, there's three things that can happen:
+
+  - We need to move horizontally towards $x_1$. In this case, the next point is $(x_0 + s_x, y_0)$.
+  - We need to move vertically towards $y_1$. In this case, the next point is $(x_0, y_0 + s_y)$.
+  - Both of the above are true, and the next point is $(x_0 + s_x, y_0 + s_y)$.
+
+  This will repeat for any given point in the line, so all that's left is to decide which path we should take at each point. For that, we'll accumulate the error $E$ over both the $x$ and $y$ axes. We'll start from another form of the line equation $y = mx + b$:
+
+  $$
+  0 = dx(y - y_0) - dy(x - x_0)
+  $$
+
+  That gives us the error as a function of $(x, y)$ such that $E_{xy} = 0$ for each point in the line:
+
+  $$
+  E_{xy} = dx(y - y_0) - dy(x - x_0)
+  $$
+
+  and we can derive the error for the first step
+
+  $$
+  E = dx(y_0 + 1 - y_0) - dy(x_0 + 1 - x_0)
+  E = dx - dy
+  $$
+
+  Notice how this gives us information about the slope of our line. Because $dx$ and $dy$ are positive numbers, we can affirm
+
+  $$
+  E \in [-dy, dx]\\
+  E < 0 \iff dx < dy\\
+  E > 0 \iff dx > dy\\
+  E = 0 \iff dx = dy
+  $$
+
+  Then, we can conclude that:
+
+  $$
+  \begin{aligned}
+  E > \frac{-dy}{2} &\iff dx > \frac{dy}{2}\\
+  &\iff 1 > \frac{dy}{2dx}\\
+  &\iff 2 > \frac{dy}{dx} = m\\
+  &\iff m < 2
+  \end{aligned}
+  $$
+
+  and
+
+  $$
+  \begin{aligned}
+  E < \frac{dx}{2} &\iff dy > \frac{dx}{2}\\
+  &\iff \frac{dy}{dx} = m > \frac{1}{2}\\
+  &\iff m > \frac{1}{2}
+  \end{aligned}
+  $$
+
+  This is great, because it helps us decide which pixel we should draw next. We only have three options:
+
+  - $(x_0 + s_x, y_0)$, which follows a slope of $m = 0$
+  - $(x_0 + s_x, y_0 + s_y)$, which follows a slope of $m = 1$
+  - $(x_0, y_0 + s_y)$, which follows a slope of $m = \infty$
+
+  We want to pick the option that brings the average $m$ closest to the actual slope of our line. Then:
+
+  - If $m \leq \frac{1}{2}$, the slope is closest to $0$ and we advance along the $x$ axis.
+  - If $m \geq 2$, the slope is closest to $\infty$ and we advance along the $y$ axis.
+  - If $\frac{1}{2} < m < 2$, the slope is closest to $1$ and we advance along both axes.
+
+  We can simplify this decision into two cases: if $m < 2$, we have to advance along $x$, and if $m > \frac{1}{2}$ we advance along $y$. These conditions aren't mutually exclusive, so if both are true we'll move along both axes. This can be easier to understand visually:
+
+  <PictureFrame>![Graph showing slope](/img/02-lines/graph.svg)</PictureFrame>
+
+  The diagram only covers positive values since $dx$ and $dy$ are always positive, but remember the line can be going in any direction depending on the values of $s_x$ and $s_y$.
+
+  Now we only need to find the change in $E$ for the next point. We can easily find this out:
+
+  $$
+  E_{x + 1, y} = dx(y - y_0) - dy(x + 1 - x_0) = E_{xy} - dy\\
+  E_{x, y + 1} = dx(y + 1 - y_0) - dy(x - x_0) = E_{xy} + dx\\
+  E_{x + 1, y + 1} = dx(y + 1 - y_0) - dy(x + 1 - x_0) = E_{xy} + dx - dy
+  $$
+
+  Then, we only need to add $dx$ when we move on the $y$ axis and subtract $dy$ when me move on the $x$ axis. All that's left is to add break conditions when we get to the last point. The final code, once again, multiplies everything by two to avoid the $\frac{1}{2}$ term:
+
+  <CodeBlock>
+  ```typescript
+  ...
+
+  const dx = Math.abs(x1 - x0);
+  const sx = Math.sign(x1 - x0);
+  const dy = -Math.abs(y1 - y0);
+  const sy = Math.sign(y1 - y0);
+  let error = dx + dy;
+
+  let x = x0;
+  let y = y0;
+  for (;;) { // Loop until break
+    this.surface.setPixel(x, y, { r, g, b, a });
+    if (x === x1 && y === y1) break;
+
+    const e2 = 2 * error;
+    if (e2 >= dy) {
+      if (x0 === x1) break;
+      error += dy;
+      x += sx;
+    }
+    if (e2 <= dx) {
+      if (y0 === y1) break;
+      error += dx;
+      y += sy;
+    }
+  }
+  ```
+  </CodeBlock>
+</Details>
   
 Let's try it out. We'll write some code in our `render()` function to draw lines in every direction by rotating them over time. The function can take an `elapsed` parameter, which indicates the number of milliseconds passed since the first frame, so let's use that:
 
