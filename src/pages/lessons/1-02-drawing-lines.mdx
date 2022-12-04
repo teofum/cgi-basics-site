@@ -14,9 +14,9 @@ Now that we know our way around the basic rendering API, let's start with someth
 
 Lines go from point A to point B, so we'll need to pass both. We can use `Vec2` for that. We'll also add a parameter for the color we want our line to be. Finally, since these are screen coordinates, we'll round them to the nearest pixel before doing anything with them:
 
-<CodeBlock title="renderer.ts">
+<CodeBlock title="renderer/Renderer.ts">
 ```typescript
-private drawLine(start: Vec2, end: Vec2, { r, g, b, a = 1 }: Color) {
+private drawLine(start: Vec2, end: Vec2, color: number) {
   const x0 = ~~(start.x);
   const x1 = ~~(end.x);
   const y0 = ~~(start.y);
@@ -49,7 +49,7 @@ const m = dy / dx;
 
 let y = y0;
 for (let x = x0; x <= x1; x++) {
-  this.surface.setPixel(x, y, { r, g, b, a });
+  this.surface.setPixel(x, y, color);
   y += m;
 }
 ```
@@ -68,7 +68,7 @@ const m = dy / dx;
 let y = y0;
 let error = 0;
 for (let x = x0; x <= x1; x++) {
-  this.surface.setPixel(x, y, { r, g, b, a });
+  this.surface.setPixel(x, y, color);
   error += m;
   if (error > 0.5) {
     y++;
@@ -80,7 +80,7 @@ for (let x = x0; x <= x1; x++) {
 
 We can try this out right now. Let's add some code to our `render()` function:
 
-<CodeBlock title="renderer.ts">
+<CodeBlock title="renderer/Renderer.ts">
 ```typescript
 public render() {
   this.drawLine({ x: 100, y: 100 }, { x: 400, y: 300 }, { r: 1, g: 0, b: 0 });
@@ -108,7 +108,7 @@ let D = (2 * dy) - dx;
 
 let y = y0;
 for (let x = x0; x <= x1; x++) {
-  this.surface.setPixel(x, y, { r, g, b, a });
+  this.surface.setPixel(x, y, color);
   if (D > 0) {
     y++;
     D += 2 * (dy - dx);
@@ -172,7 +172,7 @@ The changes can seem rather arbitrary, but the two functions are doing the exact
 
   let y = y0;
   for (let x = x0; x <= x1; x++) {
-    this.surface.setPixel(x, y, { r, g, b, a });
+    this.surface.setPixel(x, y, color);
     if (f(x, y) > 0) {
       y++;
     }
@@ -242,7 +242,7 @@ The changes can seem rather arbitrary, but the two functions are doing the exact
 
   let y = y0;
   for (let x = x0; x <= x1; x++) {
-    this.surface.setPixel(x, y, { r, g, b, a });
+    this.surface.setPixel(x, y, color);
     if (D > 0) {
       y++;
       D += dy - dx;
@@ -265,7 +265,7 @@ The changes can seem rather arbitrary, but the two functions are doing the exact
 
   let y = y0;
   for (let x = x0; x <= x1; x++) {
-    this.surface.setPixel(x, y, { r, g, b, a });
+    this.surface.setPixel(x, y, color);
     if (D > 0) {
       y++;
       D += 2 * (dy - dx);
@@ -308,7 +308,7 @@ let error = dx + dy;
 let x = x0;
 let y = y0;
 for (;;) { // Loop until break
-  this.surface.setPixel(x, y, { r, g, b, a });
+  this.surface.setPixel(x, y, color);
   if (x === x1 && y === y1) break;
 
   const e2 = 2 * error;
@@ -434,7 +434,7 @@ This version does away with iterating over a "master" axis, and instead accumula
   let x = x0;
   let y = y0;
   for (;;) { // Loop until break
-    this.surface.setPixel(x, y, { r, g, b, a });
+    this.surface.setPixel(x, y, color);
     if (x === x1 && y === y1) break;
 
     const e2 = 2 * error;
@@ -455,7 +455,7 @@ This version does away with iterating over a "master" axis, and instead accumula
   
 Let's try it out. We'll write some code in our `render()` function to draw lines in every direction by rotating them over time. The function can take an `elapsed` parameter, which indicates the number of milliseconds passed since the first frame, so let's use that:
 
-<CodeBlock title="renderer.ts">
+<CodeBlock title="renderer/Renderer.ts">
 ```typescript
 public render(elapsed: number) {
   const {width, height} = this.options;
@@ -478,3 +478,42 @@ public render(elapsed: number) {
 And that's it! It took some work, but we can now draw lines between any two points in our canvas.
 
 In the next lesson, we'll use the line drawing function for something a little more exciting: we'll be drawing our first three-dimensional objects.
+
+<Details emoji="💻" title="Complete code">
+  <CodeBlock title="renderer/Renderer.ts">
+  ```typescript
+  private drawLine(start: Vec2, end: Vec2, color: number) {
+    const x0 = ~~(start.x);
+    const y0 = ~~(start.y);
+    const x1 = ~~(end.x);
+    const y1 = ~~(end.y);
+
+    const dx = Math.abs(x1 - x0);
+    const dy = -Math.abs(y1 - y0);
+    const sx = Math.sign(x1 - x0);
+    const sy = Math.sign(y1 - y0);
+
+    let error = dx + dy;
+    let x = x0;
+    let y = y0;
+
+    for (; ;) {
+      this.surface.setPixel(x, y, color);
+      if (x === x1 && y === y1) break;
+
+      const e2 = 2 * error;
+      if (e2 >= dy) {
+        if (x === x1) break;
+        error += dy;
+        x += sx;
+      }
+      if (e2 <= dx) {
+        if (y === y1) break;
+        error += dx;
+        y += sy;
+      }
+    }
+  }
+  ```
+  </CodeBlock>
+</Details>

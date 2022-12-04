@@ -1,0 +1,297 @@
+---
+layout: ../../layouts/MDLayout.astro
+nextSlug: 1-04-transforms
+---
+import Details from '../../components/Details.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import Callout from '../../components/Callout.astro';
+import PictureFrame from '../../components/PictureFrame.astro';
+
+import replacements from '../../components/replace';
+export const components = replacements;
+
+In the previous lesson, we learned how to draw a line on a 2D surface. Now we'll use that function to draw the most basic type of 3D object: a wireframe.
+
+## Defining 3D objects
+
+First, we need to define what a 3D object is. The type of objects we'll be drawing is a *polygon mesh*, defined by a set of vertices in 3D space connected by polygons, usually triangles. With enough triangles, a polygon mesh can approximate any surface.
+
+Let's define our vertices as a point in 3d space. We can use the `Vec3` type included in the starter:
+
+<CodeBlock title="types/ObjectData.ts">
+```typescript
+import Vec3 from './Vec3';
+
+interface ObjectData {
+  vertices: Vec3[];
+}
+
+export default ObjectData;
+```
+</CodeBlock>
+
+Next, we need to define the triangles. Each triangle connects three vertices, and vertices can be shared between more than one triangle, so for each triangle we'll use an array of three numbers indexing vertices from the array we just declared.
+
+<CodeBlock>
+```typescript
+type Triangle = [number, number, number];
+
+interface ObjectData {
+  vertices: Vec3[];
+  triangles: Triangle[]
+}
+```
+</CodeBlock>
+
+Indexing vertices every time can get tedious, so let's write a small object class to wrap this data in a friendlier API. It will also come in handy when we need to write some additional logic later on.
+
+<CodeBlock title="object/Object3D.ts">
+```typescript
+import ObjectData from '../types/ObjectData';
+
+class Object3D {
+  private data: ObjectData;
+
+  public get triangles() {
+    return this.data.triangles
+      .map((tri) => tri.map((vi) => this.vertex(vi)));
+  }
+
+  public get vertexData() { return this.data.vertices; }
+  public get triangleData() { return this.data.triangles; }
+
+  constructor(data: ObjectData) {
+    this.data = data;
+  }
+
+  public vertex(i: number) {
+    return this.data.vertices[i];
+  }
+
+  public triangle(i: number) {
+    return this.data.triangles[i].map((vi) => this.vertex(vi));
+  }
+}
+
+export default Object3D;
+```
+</CodeBlock>
+
+Now we can write our wireframe function. The function itself is very simple, all we need to do is get all of an object's triangles, and for each one draw the three lines between each pair of vertices. There's one problem, however: our objects (and their vertices) are defined in 3D space, but our line function expects 2D coordinates to draw on the screen. We'll need some way to convert the "world space" 3D coordinates to "screen space" 2D coordinates, and that's where *projection* comes in.
+
+## Projection
+
+The process of converting 3D coordinates to 2D is called *projection*, because we're projecting 3D objects onto a plane. We'll use a standard perspective projection that simulates a camera lens.
+
+Projecting 3D coordinates onto a 2D plane is very simple if we define the plane to be perpendicular to one of the three axes. In our case, we'll use the $z$ axis, as if the camera was positioned at the origin $(0, 0, 0)$ and pointing towards the positive Z axis:
+
+// 3D diagram of a camera pointing toward positive Z
+
+Projection happens for each point, or vertex, in 3D space. Because we're looking directly along the $z$ axis, that will be our *depth*, or how far a vertex is from the camera. The other variable that will define how we transform $x$ and $y$ is the camera's *focal length*.
+
+In photography terms, the focal length of a lens is the distance between the optical center of the lens and the focal or image plane (the camera's sensor or film where the light converges and the image is formed). It defines the field of view: the longer the focal length, the narrower the field of view.
+
+Unlike a real camera, where the image plane is behind the lens, in computer graphics we work with a virtual image plane in front of the "lens" because the math is easier and we're not bound by physics.
+
+The way projection works is fairly straightforward: we define our focal plane perpendicular to the $z$ axis at $z = 0$, and place the "camera" at $(x, y, z) = (0, 0, -f)$ where $f$ is the focal length. Then, for each vertex we draw a line from the vertex to the camera, take the position where it intersects the plane, and throw away $z$ to get a 2D vector:
+
+// 3D diagram of vertices intersecting the plane
+
+Since we're dealing with straight lines, the math is very simple. It also works the exact same way for the $x$ and $y$ axes, so we can do the math in 2D and apply it twice. Let's look at a top-down view, ignoring the $y$ axis:
+
+// Top down diagram of projection
+
+For any vertex, we can draw a rectangular triangle with the points
+
+$$
+[(x, z) (0, z) (0, -f)]
+$$
+
+whose hypothenuse is the line between the vertex and the camera. Then, to find where this line intersects the plane at $z = 0$, we can draw a second triangle with the same shape as the first, but scaled down so that it only reaches $z = 0$ with the points
+
+$$
+[(x', 0) (0, 0) (0, -f)]
+$$
+
+This is easier to understand visually, so let's look at a diagram.
+
+// Top down diagram of triangles
+
+We know these triangles are what's called *similar triangles*, meaning they have the same angles—in other words, they're uniformly scaled up or down versions of one another. A property of similar triangles is that the scale is equal for all sides, which in our case means
+
+$$
+\frac{f}{z - (-f)} = \frac{x' - 0}{x - 0}\\
+\frac{f}{z + f} = \frac{x'}{x}\\
+\frac{fx}{z + f} = x'
+$$
+
+and since it works for both axes, we can figure out $y'$ by multiplying by the same number $\frac{-f}{z + f}$. Now we can write our `project` function. The camera's focal length is already provided as a property in the renderer options as `camera.focalLength`.
+
+<CodeBlock title="renderer/Renderer.ts">
+```typescript
+private project(vertex: Vec3): Vec2 {
+  const f = this.options.camera.focalLength;
+  const p = f / (vertex.z + f);
+  return {
+    x: vertex.x * p,
+    y: vertex.y * p,
+  };
+}
+```
+</CodeBlock>
+
+There's one step still left, though. Right now, we have projected world-space coordinates (we'll call these *camera* or *view* coordinates), and we still need to convert those to pixel coordinates to draw on screen.
+
+First, we need to define a clipping rectangle. The focal plane is infinite, but our monitor isn't, so we need to tell our program where in our simulated world the edges are. 
+
+To keep things simple, we'll give our rectangle a height of 1. Then, we can simply multiply by our screen height in pixels to get the final number. Anything with a $y$ coordinate outside the $[0; 1]$ range will fall out of bounds and won't be drawn.
+
+$$
+y_{screen} = y * screen\_height
+$$
+
+We'll do the same for $x$ multiplying by the screen width instead of height, but we'll need to divide by our screen's aspect ratio so we don't get a stretched image:
+
+$$
+x_{screen} = \frac{x}{aspect} * screen\_width
+$$
+
+Finally, we want the view space $(0, 0)$ to be at the center of our screen, since the camera is at $(0, 0)$. We can just add $\frac{1}{2}$ to both coordinates to bring the in-screen ranges from $([0; aspect] [0; 1])$ to $([-\frac{aspect}{2}; \frac{aspect}{2}] [-\frac{1}{2}; \frac{1}{2}])$. 
+
+We also need to invert $y$, because world and view coordinates have, by convention, the $y$ axis pointing up, while screen coordinates have $y$ pointing down. Then, we can write the final code as:
+
+<CodeBlock title="renderer/Renderer.ts">
+```typescript
+private viewToScreen(point: Vec2) {
+    return {
+      x: (point.x / this.aspect + 0.5) * this.options.width,
+      y: (-point.y + 0.5) * this.options.height,
+    };
+  }
+```
+</CodeBlock>
+
+## Drawing the wireframes
+
+Now that we can project vertices and draw lines, we just need to put everything together to draw a wireframe. The process is very simple: we just need to get every triangle, project its vertices, then draw lines between the projected vertices.
+
+<CodeBlock title="renderer/Renderer.ts">
+```typescript
+private drawWireframe(object: Object3D, color: number) {
+  object.triangles.forEach((triangle) => {
+    for (let i = 0; i < 3; i++) {
+      this.drawLine(
+        this.viewToScreen(this.project(triangle[i])),
+        this.viewToScreen(this.project(triangle[(i + 1) % 3])),
+        color,
+      );
+    }
+  });
+}
+```
+</CodeBlock>
+
+Now we need an object to draw on the screen. Let's make a simple cube. A cube has eight vertices and six square sides, each made out of two triangles. We'll define the vertices so the cube is centered on the origin $(0, 0, 0)$, and we'll give our cube a side of $1$, which means the vertices will be on $\frac{1}{2}$ and $-\frac{1}{2}$:
+
+<CodeBlock>
+```typescript
+const cube = new Object3D({
+  vertices: [
+    { x: -0.5, y: -0.5, z: -0.5 },
+    { x: 0.5, y: -0.5, z: -0.5 },
+    { x: 0.5, y: 0.5, z: -0.5 },
+    { x: -0.5, y: 0.5, z: -0.5 },
+
+    { x: -0.5, y: -0.5, z: 0.5 },
+    { x: 0.5, y: -0.5, z: 0.5 },
+    { x: 0.5, y: 0.5, z: 0.5 },
+    { x: -0.5, y: 0.5, z: 0.5 },
+  ],
+  triangles: [],
+});
+```
+</CodeBlock>
+
+Then, we'll connect the vertices with triangles. This part can be a little confusing, so take your time and try to understand how we're connecting the vertices to make triangles. I always get a pen and paper, draw the vertices with their indices, and start connecting them; it's much easier to see on paper than it is in your head.
+
+<CodeBlock>
+```typescript
+const cube = new Object3D({
+  vertices: [ ... ],
+  triangles: [
+    [0, 1, 3],
+    [1, 2, 3],
+    [4, 5, 6],
+    [6, 7, 4],
+    [0, 1, 5],
+    [5, 4, 0],
+    [2, 6, 7],
+    [7, 3, 2],
+    [1, 2, 6],
+    [6, 5, 1],
+    [0, 4, 3],
+    [3, 4, 7],
+  ],
+});
+```
+</CodeBlock>
+
+We have a cube! Now we just need to tell our renderer to draw it. We don't want to define the cube on every frame though, that would be extremely inefficient. Instead, we'll use a *scene:* a collection of objects we'll pass to the renderer on every frame so it can work with them.
+
+The starter project already has an empty scene declared in `scene.ts`. Let's put our cube in that file and add it to the `objects` property:
+
+<CodeBlock title="scene.ts">
+```typescript
+const cube = new Object3D({ ... });
+
+const scene: Scene = {
+  objects: [cube],
+};
+```
+</CodeBlock>
+
+Then, we'll change our `render()` function to draw wireframes for every object in the scene:
+
+<CodeBlock title="renderer/Renderer.ts">
+```typescript
+public render(elapsed: number) {
+  const {width, height} = this.options;
+  const angle = elapsed / 1000;
+  const middle = { x: width / 2, y: height / 2 };
+  const end = {
+    x: Math.cos(angle) * 200 + middle.x,
+    y: Math.sin(angle) * 200 + middle.y,
+  };
+
+  this.drawLine(middle, end, { r: 1, g: 1, b: 1 });
+}
+```
+
+<div slot="result">![Wireframe of a cube seen from the inside](/img/03-wireframes/cube-1.png)</div>
+</CodeBlock>
+
+We've rendered our first 3D object! It might look a little different from what you expected, though. The first thing you'll notice is that it looks a bit like a perspective drawing of a room, as if the camera was inside the cube. In fact, the camera _is_ inside the cube! Since we centered our cube at $(0, 0, 0)$, which is the camera's position, the camera is now inside of our cube.
+
+We'll learn how to move objects around (as well as rotate and scale them) in the next lesson. For now, let's keep our room-cube. The other thing you might notice is some lines are being drawn that shouldn't be there. Each side of the cube is made up of two triangles, so why does the far side have two lines across it forming an X?
+
+The reason for that is because we're also drawing stuff that's *behind* the camera! Of course, that makes no sense, and projection gets all weird when you try and draw stuff behind the camera. We can fix that easily by adding some code to our `drawWireframe` function to skip any triangles that are entirely behind the camera:
+
+<CodeBlock title="renderer/Renderer.ts">
+```typescript
+private drawWireframe(object: Object3D, color: number) {
+  object.triangles.forEach((triangle) => {
+    if (triangle.every((v) => v.z <= 0)) return;
+    
+    ...
+  });
+}
+```
+
+<div slot="result">![Wireframe of a cube seen from the inside, fixed](/img/03-wireframes/cube-2.png)</div>
+</CodeBlock>
+
+Now that looks much better. Note we only want to skip triangles where *every* vertex is behind the camera, as we can have one or two vertices behind the camera and still have the face be visible (this is the case for all the sides of our cube).
+
+Now we can draw 3D objects! We've learned about projection and how we can convert 3D coordinates into screen coordinates for display.
+
+In the next lesson, we'll learn how to move the cube around, as well as rotate and scale it. We'll be able to start drawing some more interesting scenes.
