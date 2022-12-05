@@ -1,0 +1,683 @@
+---
+layout: ../../layouts/MDLayout.astro
+nextSlug: 1-05-building-primitives
+---
+import Details from '../../components/Details.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import Callout from '../../components/Callout.astro';
+import PictureFrame from '../../components/PictureFrame.astro';
+
+import replacements from '../../components/replace';
+export const components = replacements;
+
+In the last lesson, we learned about projection and how we can draw 3D objects on a 2D surface. However, what we can do is quite limited: we can't move our objects around, at least not without manipulating the vertices directly.
+
+In this lesson, we'll learn how to do just that. We'll use *transforms*, so named because they transform the object. More specifically, they transform three properties of the object: translation, rotation, and scale.
+
+// diagrams for translate rotate scale
+
+The way transforms work is fairly straightforward, but the implementation uses some basic linear algebra. Unfortunately, that means this lesson will be very math-heavy with not much code. You've been warned. Don't worry—you don't need to be good at math to understand it. I'll walk you through it with visual examples whenever possible and we'll see it's really not that complex. Let's start with the easiest transformation: translation.
+
+## Translation
+
+Translation is the fancy technical term for moving things around. The way it's implemented is very simple: we just add the movement amount to the vertex. That's it. Let's call our translation vector $T$, then
+
+$$
+v_{translated} = (v_x + T_x, v_y + T_y, v_z + T_z)
+$$
+
+Easy. Let's move on to the next transformation, scale.
+
+## Scale
+
+Scaling is also very simple: we can scale things around the origin by just multiplying the vertex coordinates by a scale value. Let's use a three-dimensional vector for scale, so we can scale things independently on each axis. We'll call it $S$.
+
+$$
+v_{scaled} = (v_x * S_x, v_y * S_y, v_z * S_z)
+$$
+
+Easy! Note the scaling always happens relative to the origin $(0, 0, 0)$. This is also true for rotation, which we'll look at next, and it's why we center our models around that point: it makes the math for everything much simpler.
+
+Note also that while the "empty transform" value (the value that keeps the object as is) for translation is $(0, 0, 0)$, for scale it's $(1, 1, 1)$, since we're multiplying instead of adding.
+
+## Rotation
+ 
+Now we come to the difficult one. Rotating things isn't nearly as straightforward as moving or scaling, and we need to use trigonometry. Rotation in three dimensions is complicated, so let's start in two.
+
+The formula for rotating a point in a 2D plane around the origin $(0, 0)$ is
+
+$$
+x' = x \cos \alpha - y \sin \alpha\\
+y' = x \sin \alpha + y \cos \alpha
+$$
+
+// diagram for 2d rotation
+
+For a more detailed explanation on how we get to that, read on below:
+
+<Details emoji="🤿" title="Deep dive: rotating points">
+  In math, the point at the start (angle $\alpha = 0$) of the unit circle (the circle of radius $1$ centered at the origin) is defined by $(\cos 0, \sin 0) = (1, 0)$. Then, we can think of any other point in the unit circle as rotating that point by the angle $\alpha$.
+
+  Then, for any point where $y = 0$, we can rotate it by multiplying the rotation of $(0, 1)$ by its distance from the center:
+
+  $$
+  x' = x \cos \alpha\\
+  y' = x \sin \alpha
+  $$
+
+  We can do the same for the point $(0, 1)$ at the top of the unit circle. This point can be written as
+
+  $$
+  \left(\cos \frac{\pi}{2}, \sin \frac{\pi}{2}\right)
+  $$
+
+  Then, rotating it by an angle $\alpha$ we get
+
+  $$
+  \left(\cos \left(\frac{\pi}{2} + \alpha\right), \sin \left(\frac{\pi}{2} + \alpha\right)\right)
+  $$
+
+  and using the properties of sine and cosine we know that
+
+  $$
+  \cos \left(\frac{\pi}{2} + \alpha\right) = -\sin \alpha\\
+  \sin \left(\frac{\pi}{2} + \alpha\right) = \cos \alpha
+  $$
+
+  then, we can rewrite the rotation of $(0, 1)$ by $\alpha$ as
+
+  $$
+  (-\sin \alpha, \cos \alpha)
+  $$
+
+  and for any given point such that $x = 0$, we can rotate that point by $\alpha$ by multiplying the previous point by $y$:
+
+  $$
+  x' = y (-\sin \alpha)\\
+  y' = y \cos \alpha
+  $$
+
+  Now we know how to rotate any point in the $x$ axis and any point in the $y$ axis. Because any two-dimensional vector $(x, y)$ can be represented as the sum $(x, 0) + (0, y)$, it follows that if we rotate those two vertices around the origin and add them together the result will equal the rotated $(x, y)$. That means we can simply add both formulas together to get
+
+  $$
+  x' = x \cos \alpha - y \sin \alpha\\
+  y' = x \sin \alpha + y \cos \alpha
+  $$
+</Details>
+
+For 3D points, we can rotate on each individual axis ($x$, $y$ and $z$) by doing a 2D rotation along that axis. So for rotation along the $x$ axis:
+
+$$
+x' = x\\
+y' = z \sin \alpha + y \cos \alpha\\
+z' = z \cos \alpha - y \sin \alpha
+$$
+
+along the $y$ axis, we get:
+
+$$
+x' = x \cos \alpha - z \sin \alpha\\
+y' = y\\
+z' = x \sin \alpha + z \cos \alpha
+$$
+
+and along $z$:
+
+$$
+x' = x \cos \alpha - y \sin \alpha\\
+y' = x \sin \alpha + y \cos \alpha\\
+z' = z
+$$
+
+How this works may be easier to understand visually:
+
+// diagram of 3d rotation
+
+This way of doing 3D rotations is called [Euler angle](https://en.wikipedia.org/wiki/Euler_angles) rotation, and it's the easiest way to do it. You may have noticed the order in which rotations are applied changes the result, which is an important thing to keep in mind when using Euler angles for rotation.
+
+A better way of representing rotation in a 3D space is [quaternions](https://en.wikipedia.org/wiki/Quaternion), which work independently of order and resolve some problems with Euler rotation, particularly gimbal lock. Quaternions, however, involve some complicated and confusing math, and I don't understand them nearly well enough to explain them myself, so we won't be using them in this lesson. Euler angle rotation works well enough for our purposes, but keep in mind quaternions will often show up whenever 3D rotations are involved.
+
+Now we know how to apply all three transformations: translation, rotation, and scale. The problem is applying all of them to every object on every frame becomes very heavy on resources, so we need to find a way to optimize that. Enter the transformation matrix.
+
+## Transformation matrices
+
+So far, we've been manipulating the values in each vector independently, but there's a better way. We can use matrix multiplication to work on entire vectors at once.
+
+If you don't remember how matrix multiplication works, or if you have no idea what I'm talking about and think a "matrix" is the 1999 film, read on below for a basic explanation to get you up to speed.
+
+<Details emoji="💡" title="A quick refresher on matrix multiplication">
+  A matrix is, essentially, just a grid of numbers. We talk about a matrix of size $m \times n$ when it has $m$ rows and $n$ columns. The three-dimensional vectors we've been working with can be interpreted as $3 \times 1$ matrices (or $1 \times 3$, whatever's more convenient).
+
+  Matrix multiplication differs fron regular multiplication in a number of ways, some of which are important for us:
+
+  - It's non-commutative, which means the order of operands does change the result
+  - The number of columns of the first matrix must match the number of rows of the second, and the result will have the number of rows of the first matrix and the number of columns of the second.
+
+  // diagram of rows and columns exact
+
+  To multiply two matrices $A_{l \times m} \times B_{m \times n}$, we define the result $C_{l \times n}$ such that
+
+  $$
+  C_{ij} = \sum_{k = 1}^{m} A_{ik}B_{kj}
+  $$
+
+  or, in layman's terms, for each cell in the result matrix $C$ we take the row from $A$ where that cell is, the column from $B$ where the cell is, and add the products of their numbers in order:
+
+  // diagram of matrix multiplication
+
+  Notice how this is why $C$ must have the number of rows of $A$ and the number of columns of $B$, and also why the number of columns in $A$ must match the number of rows in $B$.
+</Details>
+
+When multiplying a vector of size $n$ by a matrix, we treat the vector as a matrix of size $n \times 1$ and place it as the second operand, so we can multiply it by any matrix of size $m \times n$. Particularly, we care about a square matrix of size $n \times n$, which gives us as a result another matrix of size $n \times 1$ which can in turn be interpreted as a vector. Then, the multiplication looks like
+
+$$
+\left[\begin{array}{ccc}
+m_{11} & m_{12} & m_{13}\\
+m_{21} & m_{22} & m_{23}\\
+m_{31} & m_{32} & m_{33}
+\end{array}\right]
+\times
+\left[\begin{array}{c}
+x\\
+y\\
+z
+\end{array}\right]
+=
+\left[\begin{array}{c}
+x'\\
+y'\\
+z'
+\end{array}\right]
+=
+\left[\begin{array}{c}
+m_{11}x + m_{12}y + m_{13}z\\
+m_{21}x + m_{22}y + m_{23}z\\
+m_{31}x + m_{32}y + m_{33}z
+\end{array}\right]
+$$
+
+### Rotation matrices
+
+Let's start with rotation, the most complex operation. We can define a rotation matrix for each axis. For the $x$ axis, we know that
+
+$$
+x' = x\\
+y' = z \sin \alpha + y \cos \alpha\\
+z' = z \cos \alpha - y \sin \alpha
+$$
+
+then we can rewrite that as
+
+$$
+x' = 1 x + 0 y + 0 z\\
+y' = 0 x + (\cos \alpha) y + (-\sin \alpha) z\\
+z' = 0 x + (\sin \alpha) y + (\cos \alpha) z
+$$
+
+and if we look at the equation from before, we can see those equations can be represented by a $3 \times 3$ matrix:
+
+$$
+R_x(\alpha) =
+\left[\begin{array}{ccc}
+1 & 0 & 0\\
+0 & \cos \alpha & -\sin \alpha\\
+0 & \sin \alpha & \cos \alpha
+\end{array}\right]
+$$
+
+We can do the same for the $y$ axis:
+
+$$
+R_y(\alpha) =
+\left[\begin{array}{ccc}
+\cos \alpha & 0 & -\sin \alpha\\
+0 & 1 & 0\\
+\sin \alpha & 0 & \cos \alpha
+\end{array}\right]
+$$
+
+and for $z$:
+
+$$
+R_z(\alpha) =
+\left[\begin{array}{ccc}
+\cos \alpha & -\sin \alpha & 0\\
+\sin \alpha & \cos \alpha & 0\\
+0 & 0 & 1
+\end{array}\right]
+$$
+
+We can apply these rotations to our vertex by multiplying them. For example, to rotate around the $x$ axis by $\alpha$, we can do
+
+$$
+\left[\begin{array}{c}
+x'\\
+y'\\
+z'
+\end{array}\right]
+=
+R_x(\alpha) \times
+\left[\begin{array}{c}
+x\\
+y\\
+z
+\end{array}\right]
+$$
+
+We can then multiply the result with another matrix, for example the rotation by $y$:
+
+$$
+\left[\begin{array}{c}
+x''\\
+y''\\
+z''
+\end{array}\right]
+= R_y(\beta) \times
+\left[\begin{array}{c}
+x'\\
+y'\\
+z'
+\end{array}\right]
+= R_y(\beta) \times R_x(\alpha) \times
+\left[\begin{array}{c}
+x\\
+y\\
+z
+\end{array}\right]
+$$
+
+If we generalize this, we can see that we can combine any number of transform matrices by simply multiplying them together, and they will be applied to the vector starting from the rightmost one and going left:
+
+$$
+\left[\begin{array}{c}
+x'\\
+y'\\
+z'
+\end{array}\right]
+= T_n \times \dots \times T_2 \times T_1 \times
+\left[\begin{array}{c}
+x\\
+y\\
+z
+\end{array}\right]
+$$
+
+This also means we can multiply all the transform matrices together first, and then apply them all at once! For example, if we wanted to build a 3D rotation matrix with order $xyz$, we could combine the rotation matrices for each axis:
+
+$$
+R_{xyz}(\alpha, \beta, \gamma) = R_z(\gamma) \times R_y(\beta) \times R_x(\alpha)
+$$
+
+This will be extremely useful, and not just for rotation as we'll see soon.
+
+### Scale matrix
+
+The scale matrix is very simple, since we're just multiplying the vector by another vector $(s_x, s_y, s_z)$. The $3 \times 3$ matrix for that becomes
+
+$$
+S(s_x, s_y, s_z) =
+\left[\begin{array}{ccc}
+s_x & 0 & 0\\
+0 & s_y & 0\\
+0 & 0 & s_z
+\end{array}\right]
+$$
+
+That's it. As we've seen before, we can compose this with rotation matrices to apply both at once:
+
+$$
+T = S(s_x, s_y, s_z) \times R_{xyz}()
+$$
+
+Because the scale matrix only affects each coordinate independently, it doesn't matter whether we apply it before or after rotation.
+
+### Translation Matrix
+
+This one's interesting. Translation, as we've seen, is very simple. However, because it's based on addition and not multiplication, we can't make a $3 \times 3$ translation matrix, because every term in the equation resulting from mutliplying a $3 \times 3$ matrix and a 3D vector includes either $x$, $y$ or $z$. In other words, we can't just add a number at the end.
+
+At least, not in three dimensions. We can do a clever trick using a $4 \times 4$ matrix. Of course, that also means we have to expand our vector to four dimensions! We'll give it a fourth coordinate, $w$.
+
+What we're actually doing is something like a shear in *four* dimensions, which results in what looks like a translation in *three* dimensions once you discard the fourth. Confused yet? Don't worry, thinking about a fourth spatial dimension is likely to make your head spin. Luckily, this is probably the one time in this lesson where doing the math is actually much easier than trying to visualize it.
+
+Let's start from the $3 \times 3$ identity matrix, which when multiplied does nothing:
+
+$$
+\left[\begin{array}{ccc}
+1 & 0 & 0\\
+0 & 1 & 0\\
+0 & 0 & 1
+\end{array}\right]
+$$
+
+and expand it to a $4x4$ matrix:
+
+$$
+\left[\begin{array}{cccc}
+1 & 0 & 0 & m_{14}\\
+0 & 1 & 0 & m_{24}\\
+0 & 0 & 1 & m_{34}\\
+m_{41} & m_{42} & m_{43} & m_{44}
+\end{array}\right]
+$$
+
+Now, let's see what happens when we multiply by a 4D vector $(x, y, z, w)$:
+
+$$
+\left[\begin{array}{cccc}
+1 & 0 & 0 & m_{14}\\
+0 & 1 & 0 & m_{24}\\
+0 & 0 & 1 & m_{34}\\
+m_{41} & m_{42} & m_{43} & m_{44}
+\end{array}\right]
+\times
+\left[\begin{array}{c}
+x\\
+y\\
+z\\
+w
+\end{array}\right]
+=
+\left[\begin{array}{c}
+1 x + 0 y + 0 z + m_{14} w\\
+0 x + 1 y + 0 z + m_{24} w\\
+0 x + 0 y + 1 z + m_{34} w\\
+m_{41} x + m_{42} y + m_{43} z + m_{44} w
+\end{array}\right]
+$$
+
+That looks interesting. We don't care about $w'$, so let's just make that row all zeroes:
+
+$$
+\left[\begin{array}{cccc}
+1 & 0 & 0 & m_{14}\\
+0 & 1 & 0 & m_{24}\\
+0 & 0 & 1 & m_{34}\\
+0 & 0 & 0 & 0
+\end{array}\right]
+\times
+\left[\begin{array}{c}
+x\\
+y\\
+z\\
+w
+\end{array}\right]
+=
+\left[\begin{array}{c}
+x + m_{14} w\\
+y + m_{24} w\\
+z + m_{34} w\\
+0
+\end{array}\right]
+$$
+
+Finally, we'll fix $w$ to always be one:
+
+$$
+\left[\begin{array}{cccc}
+1 & 0 & 0 & m_{14}\\
+0 & 1 & 0 & m_{24}\\
+0 & 0 & 1 & m_{34}\\
+0 & 0 & 0 & 0
+\end{array}\right]
+\times
+\left[\begin{array}{c}
+x\\
+y\\
+z\\
+1
+\end{array}\right]
+=
+\left[\begin{array}{c}
+x + m_{14}\\
+y + m_{24}\\
+z + m_{34}\\
+0
+\end{array}\right]
+$$
+
+That looks a lot like we're just adding values! And that's because, well, we are. By using a $4 \times 4$ matrix together with a fourth coordinate, we can add translation into the mix. Our final translation matrix $U(t_x, t_y, t_z)$ (we'll use the letter $U$ since $T$ is already taken by our transform matrix) will look like this:
+
+$$
+U(t_x, t_y, t_z) =
+\left[\begin{array}{cccc}
+1 & 0 & 0 & t_x\\
+0 & 1 & 0 & t_y\\
+0 & 0 & 1 & t_z\\
+0 & 0 & 0 & 0
+\end{array}\right]
+$$
+
+We still have a problem: our rotation and scale matrices are $3 \times 3$, and the rules of matrix multiplication say we can't multiply those by a $4 \times 4$ matrix, like our translation matrix.
+
+Fortunately for us, that problem has a simple solution: we can just add a row and column to the rotation and scale matrices! If we set all the new numbers to zero, it will have no effect on the results.
+
+Now we can compose all transforms into a single matrix. One critical thing to note here is that **the translation matrix must be applied last**. Unlike scale, the order does matter and the results are very different:
+
+// diagram of rotate->translate vs translate->rotate
+
+As you can see, if we rotate after translating our vertices will get flung way out into the distance. That's why it's important to always apply the translation last. With that in mind, let's go.
+
+$$
+T = U(t_x, t_y, t_z) \times S(s_x, s_y, s_z) \times R_z(\gamma) \times R_y(\beta) \times R_x(\alpha)
+$$
+
+Let's see what that looks like once everything is multiplied:
+
+$$
+T =
+\left[\begin{array}{cccc}
+(\cos\beta \cos\gamma) s_x
+& \sin\alpha \sin\beta \cos\gamma - \cos\alpha \sin\gamma
+& \cos\alpha \sin\beta \cos\gamma + \sin\alpha \sin\gamma
+& t_x\\
+\cos\beta \sin\gamma
+& (\sin\alpha \sin\beta \sin\gamma + \cos\alpha \cos\gamma) s_y
+& \cos\alpha \sin\beta \sin\gamma - \sin\alpha \cos\gamma
+& t_y\\
+-\sin\beta
+& \sin\alpha \cos\beta
+& (\cos\alpha \cos\beta) s_z
+& t_z\\
+0 & 0 & 0 & 0
+\end{array}\right]
+$$
+
+...whew! That's a big matrix. Fortunately for us, once it's all multiplied it's just 16 numbers. Let's look at some code (finally!) to build this matrix out of translation, scale and rotation values:
+
+<CodeBlock>
+```typescript
+const sin = {
+  x: Math.sin(rotation.x),
+  y: Math.sin(rotation.y),
+  z: Math.sin(rotation.z),
+};
+const cos = {
+  x: Math.cos(rotation.x),
+  y: Math.cos(rotation.y),
+  z: Math.cos(rotation.z),
+};
+
+const s = scale;
+const t = translation;
+
+this.matrix = [
+  [(cos.y * cos.z) * s.x, sin.x * sin.y * cos.z - cos.x * sin.z, cos.x * sin.y * cos.z + sin.x * sin.z, t.x],
+  [cos.y * sin.z, (sin.x * sin.y * sin.z + cos.x * cos.z) * s.y, cos.x * sin.y * sin.z - sin.x * cos.z, t.y],
+  [-sin.y, sin.x * cos.y, (cos.x * cos.y) * s.z, t.z],
+  [0, 0, 0, 0],
+];
+```
+</CodeBlock>
+
+This looks like the kind of code we want to write once and then never touch again. Let's wrap it up in a class with a nice friendly API. We'll create a new file for it in `object/Transform.ts`.
+
+<CodeBlock title="object/Transform.ts">
+```typescript
+import Mat4 from '../types/Mat4';
+import Vec3 from '../types/Vec3';
+
+class Transform {
+  private _scale: Vec3 = { x: 1, y: 1, z: 1 };
+  private _rotation: Vec3 = { x: 0, y: 0, z: 0 };
+  private _translation: Vec3 = { x: 0, y: 0, z: 0 };
+
+  private matrix: Mat4 = [
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1],
+  ];
+
+  public get scaling() {
+    return { ...this._scale };
+  }
+
+  public get rotation() {
+    return { ...this._rotation };
+  }
+
+  public get translation() {
+    return { ...this._translation };
+  }
+
+  private generateMatrix() {
+    const sin = {
+      x: Math.sin(this._rotation.x),
+      y: Math.sin(this._rotation.y),
+      z: Math.sin(this._rotation.z),
+    };
+    const cos = {
+      x: Math.cos(this._rotation.x),
+      y: Math.cos(this._rotation.y),
+      z: Math.cos(this._rotation.z),
+    };
+
+    const s = this._scale;
+    const t = this._translation;
+
+    this.matrix = [
+      [(cos.y * cos.z) * s.x, sin.x * sin.y * cos.z - cos.x * sin.z, cos.x * sin.y * cos.z + sin.x * sin.z, t.x],
+      [cos.y * sin.z, (sin.x * sin.y * sin.z + cos.x * cos.z) * s.y, cos.x * sin.y * sin.z - sin.x * cos.z, t.y],
+      [-sin.y, sin.x * cos.y, (cos.x * cos.y) * s.z, t.z],
+      [0, 0, 0, 0],
+    ];
+  }
+
+  public apply({ x, y, z }: Vec3): Vec3 {
+    const m = this.matrix;
+
+    return {
+      x: m[0][0] * x + m[0][1] * y + m[0][2] * z + m[0][3],
+      y: m[1][0] * x + m[1][1] * y + m[1][2] * z + m[1][3],
+      z: m[2][0] * x + m[2][1] * y + m[2][2] * z + m[2][3],
+    };
+  }
+
+  public translate({ x = 0, y = 0, z = 0 }: Partial<Vec3>, absolute = false) {
+    if (absolute) this._translation = { x, y, z };
+    else this._translation = {
+      x: this._translation.x + x,
+      y: this._translation.y + y,
+      z: this._translation.z + z,
+    };
+
+    this.generateMatrix();
+  }
+
+  public rotate({ x = 0, y = 0, z = 0 }: Partial<Vec3>, absolute = false) {
+    if (absolute) this._rotation = { x, y, z };
+    else this._rotation = {
+      x: this._rotation.x + x,
+      y: this._rotation.y + y,
+      z: this._rotation.z + z,
+    };
+
+    this.generateMatrix();
+  }
+
+  public scale({ x = 1, y = 1, z = 1 }: Partial<Vec3>, absolute = false) {
+    if (absolute) this._scale = { x, y, z };
+    else this._scale = {
+      x: this._scale.x * x,
+      y: this._scale.y * y,
+      z: this._scale.z * z,
+    };
+
+    this.generateMatrix();
+  }
+}
+
+export default Transform;
+```
+</CodeBlock>
+
+A couple things to note about this implementation:
+
+- We store scale, rotation and translation as vectors so they can be modified independently of each other.
+- Calculating the matrix is expensive, so instead of doing it on demand (which would be hundreds or thousands of times per frame) we store the matrix and recalculate it only when something is modified.
+- The getters use JS destructuring to return a read-only version of the values, so we can't accidentally update them without triggering a matrix update.
+- It only supports XYZ rotation order.
+
+<Callout emoji="🌶️">
+  **Code challenge:** try extending this class so it supports any rotation order with a property to select it. We won't need rotation orders other than XYZ, but implementing it can be a fun challenge.
+</Callout>
+
+Now we have our `Transform` class, let's extend our `Object3D` to use it:
+
+<CodeBlock title="object/Object3D.ts">
+```typescript
+class Object3D {
+  private data: ObjectData;
+  public transform: Transform;
+
+  public get vertices() {
+    return this.data.vertices.map((vec) => this.transform.apply(vec));
+  }
+
+  ...
+
+  constructor(data: ObjectData) {
+    this.data = data;
+    this.transform = new Transform();
+  }
+
+  public vertex(i: number) {
+    return this.transform.apply(this.data.vertices[i]);
+  }
+}
+```
+</CodeBlock>
+
+We can finally move our cube away from the camera! Let's go to our scene and apply a translation:
+
+<CodeBlock title="scene.ts">
+```typescript
+const cube = new Object3D({ ... });
+cube.transform.translate({ z: 2 });
+
+...
+```
+
+<div slot="result">![Wireframe of a cube seen from the inside](/img/04-transforms/cube-1.png)</div>
+</CodeBlock>
+
+Why stop there? We can modify our renderer code to rotate the cube a bit each frame:
+
+<CodeBlock title="renderer/Renderer.ts">
+```typescript
+public render(elapsed: number) {
+  scene.objects.forEach((object) => {
+    object.transform.rotate({ y: 0.01 });
+    this.drawWireframe(object, 0xFFFFFFFF);
+  });
+}
+```
+
+<div slot="result">
+  <video autoplay muted loop src="/img/04-transforms/cube-spinning.webm" />
+</div>
+</CodeBlock>
+
+Congratulations on making it to the end of the lesson! That was a lot of math, but now we can easily move objects around, rotate them, and scale them.
+
+In the next lesson, we'll take a break from implementing new features and make some functions to help us easily create simple objects like planes, cubes and spheres.

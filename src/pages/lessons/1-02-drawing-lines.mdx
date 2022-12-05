@@ -83,9 +83,9 @@ We can try this out right now. Let's add some code to our `render()` function:
 <CodeBlock title="renderer/Renderer.ts">
 ```typescript
 public render() {
-  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 300 }, { r: 1, g: 0, b: 0 });
-  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 200 }, { r: 0, g: 1, b: 0 });
-  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 100 }, { r: 0, g: 0, b: 1 });
+  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 300 }, 0xFF0000FF);
+  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 200 }, 0xFF00FF00);
+  this.drawLine({ x: 100, y: 100 }, { x: 400, y: 100 }, 0xFFFF0000);
 }
 ```
 
@@ -155,7 +155,7 @@ The changes can seem rather arbitrary, but the two functions are doing the exact
   Then, knowing that for a given point $f(x, y) = 0$ (meaning the point is in the line) and $x \neq x_1$, we need to find out whether the next $y$ should increase or not. We can do that by checking the midpoint between $y$ and $y + 1$:
 
   $$
-  f(x + 1, y + \frac{1}{2})
+  f\left(x + 1, y + \frac{1}{2}\right)
   $$
 
   Because $f(x,y)$ decreases as $y$ increases, we know that if the result is positive, we have to increase $y$ to get closer to 0, thus $f(x + 1, y + 1) = 0$, and if it's negative, the opposite is true and $f(x + 1, y) = 0$.
@@ -185,18 +185,18 @@ The changes can seem rather arbitrary, but the two functions are doing the exact
   Let's take that last step. We'll define the difference as follows:
 
   $$
-  D(x, y) = f(x + 1, y + \frac{1}{2}) - f(x, y)
+  D(x, y) = f\left(x + 1, y + \frac{1}{2}\right) - f(x, y)
   $$
 
   Since $f(x_0, y_0) = 0$, this starts the same as the midpoint method. We can simplify the expression _a lot_. To make it shorter, let's define $C = y_0x_1 - x_0y_1$:
 
   $$
   \begin{aligned}
-  D &= D(x_0, y_0) = f(x_0 + 1, y_0 + \frac{1}{2}) - f(x_0, y_0)\\
+  D &= D(x_0, y_0) = f\left(x_0 + 1, y_0 + \frac{1}{2}\right) - f(x_0, y_0)\\
   \\
-  &= (dy)(x_0 + 1) + (-dx)(y_0 + \frac{1}{2}) + C - ((dy)x_0 + (-dx)y_0 + C)\\
+  &= (dy)(x_0 + 1) + (-dx)\left(y_0 + \frac{1}{2}\right) + C - ((dy)x_0 + (-dx)y_0 + C)\\
   \\
-  &= (dy)(x_0 + 1) + (-dx)(y_0 + \frac{1}{2}) - (dy)x_0 - (-dx)y_0\\
+  &= (dy)(x_0 + 1) + (-dx)\left(y_0 + \frac{1}{2}\right) - (dy)x_0 - (-dx)y_0\\
   \\
   &= (dy)x_0 + dy + (-dx)y_0 - \frac{1}{2}dx - (dy)x_0 - (-dx)y_0\\
   \\
@@ -210,9 +210,9 @@ The changes can seem rather arbitrary, but the two functions are doing the exact
 
   $$
   \begin{aligned}
-  \Delta D &= f(x_0 + 2, y_0 + \frac{1}{2}) - f(x_0 + 1, y_0 + \frac{1}{2})\\
+  \Delta D &= f\left(x_0 + 2, y_0 + \frac{1}{2}\right) - f\left(x_0 + 1, y_0 + \frac{1}{2}\right)\\
   \\
-  &= (dy)(x_0 + 2) + (-dx)(y_0 + \frac{1}{2}) - (dy)(x_0 + 1) - (-dx)(y_0 + \frac{1}{2})\\
+  &= (dy)(x_0 + 2) + (-dx)\left(y_0 + \frac{1}{2}\right) - (dy)(x_0 + 1) - (-dx)\left(y_0 + \frac{1}{2}\right)\\
   \\
   &= dy
   \end{aligned}
@@ -222,9 +222,9 @@ The changes can seem rather arbitrary, but the two functions are doing the exact
 
   $$
   \begin{aligned}
-  \Delta D &= f(x_0 + 2, y_0 + \frac{3}{2}) - f(x_0 + 1, y_0 + \frac{1}{2})\\
+  \Delta D &= f\left(x_0 + 2, y_0 + \frac{3}{2}\right) - f\left(x_0 + 1, y_0 + \frac{1}{2}\right)\\
   \\
-  &= (dy)(x_0 + 2) + (-dx)(y_0 + \frac{3}{2}) - (dy)(x_0 + 1) - (-dx)(y_0 + \frac{1}{2})\\
+  &= (dy)(x_0 + 2) + (-dx)\left(y_0 + \frac{3}{2}\right) - (dy)(x_0 + 1) - (-dx)\left(y_0 + \frac{1}{2}\right)\\
   \\
   &= dy - dx
   \end{aligned}
@@ -466,7 +466,7 @@ public render(elapsed: number) {
     y: Math.sin(angle) * 200 + middle.y,
   };
 
-  this.drawLine(middle, end, { r: 1, g: 1, b: 1 });
+  this.drawLine(middle, end, 0xFFFFFFFF);
 }
 ```
 

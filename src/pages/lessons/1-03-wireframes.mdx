@@ -10,7 +10,7 @@ import PictureFrame from '../../components/PictureFrame.astro';
 import replacements from '../../components/replace';
 export const components = replacements;
 
-In the previous lesson, we learned how to draw a line on a 2D surface. Now we'll use that function to draw the most basic type of 3D object: a wireframe.
+In the [previous lesson](1-02-drawing-lines), we learned how to draw a line on a 2D surface. Now we'll use that function to draw the most basic type of 3D object: a wireframe.
 
 ## Defining 3D objects
 
@@ -255,15 +255,9 @@ Then, we'll change our `render()` function to draw wireframes for every object i
 <CodeBlock title="renderer/Renderer.ts">
 ```typescript
 public render(elapsed: number) {
-  const {width, height} = this.options;
-  const angle = elapsed / 1000;
-  const middle = { x: width / 2, y: height / 2 };
-  const end = {
-    x: Math.cos(angle) * 200 + middle.x,
-    y: Math.sin(angle) * 200 + middle.y,
-  };
-
-  this.drawLine(middle, end, { r: 1, g: 1, b: 1 });
+  scene.objects.forEach((object) => {
+    this.drawWireframe(object, 0xFFFFFFFF);
+  });
 }
 ```
 

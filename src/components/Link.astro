@@ -1,15 +1,14 @@
 ---
-const props = Astro.props;
+const { href, ...props } = Astro.props;
+const targetProps = href.startsWith("https://") ? {
+  target: '_blank',
+  rel: 'noopener noreferrer',
+} : {};
 ---
 
 <a
+  href={href}
   {...props}
-  target="_blank"
-  rel="noopener noreferrer"
-  class="
-    relative px-0.5
-    before:absolute before:bottom-0 before:left-0 before:w-full before:-z-10
-    before:bg-sky-200
-    before:h-0.5 hover:before:h-5 before:rounded-sm
-    before:transition-all"
-><slot /></a>
+  {...targetProps}
+  class="relative px-0.5 before:absolute before:bottom-0 before:left-0 before:w-full before:-z-10 before:bg-sky-200 before:h-0.5 hover:before:h-5 before:rounded-sm before:transition-all"
+  ><slot /></a>

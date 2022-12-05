@@ -37,11 +37,11 @@ article div.math>.katex-display>.katex {
 }
 
 article div.math .katex-html {
-  @apply py-2;
+  @apply py-2 text-lg;
 }
 
 article span.math-inline > .katex {
-  @apply text-xl leading-3 whitespace-nowrap;
+  @apply text-lg leading-3 whitespace-nowrap;
 }
 
 article span.math-inline > .katex > .katex-html {
@@ -49,11 +49,11 @@ article span.math-inline > .katex > .katex-html {
 }
 
 article .katex-html {
-  @apply overflow-x-auto overflow-y-visible;
+  @apply overflow-x-auto overflow-y-hidden;
 }
 
 article .katex-html .mspace.newline {
-  @apply h-3;
+  @apply h-2;
 }
 
 /* Some things Tailwind can't handle */
