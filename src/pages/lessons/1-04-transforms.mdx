@@ -14,7 +14,7 @@ In the last lesson, we learned about projection and how we can draw 3D objects o
 
 In this lesson, we'll learn how to do just that. We'll use *transforms*, so named because they transform the object. More specifically, they transform three properties of the object: translation, rotation, and scale.
 
-// diagrams for translate rotate scale
+<PictureFrame noborder>![Translation, rotation and scale](/img/04-transforms/fig1-transforms.png)</PictureFrame>
 
 The way transforms work is fairly straightforward, but the implementation uses some basic linear algebra. Unfortunately, that means this lesson will be very math-heavy with not much code. You've been warned. Don't worry—you don't need to be good at math to understand it. I'll walk you through it with visual examples whenever possible and we'll see it's really not that complex. Let's start with the easiest transformation: translation.
 
@@ -51,7 +51,7 @@ x' = x \cos \alpha - y \sin \alpha\\
 y' = x \sin \alpha + y \cos \alpha
 $$
 
-// diagram for 2d rotation
+<PictureFrame noborder>![Rotation of a point around the origin](/img/04-transforms/fig2-rotation.png)</PictureFrame>
 
 For a more detailed explanation on how we get to that, read on below:
 
@@ -64,6 +64,8 @@ For a more detailed explanation on how we get to that, read on below:
   x' = x \cos \alpha\\
   y' = x \sin \alpha
   $$
+
+  <PictureFrame noborder>![Rotation of a point on the X axis](/img/04-transforms/fig3-rotation-x.png)</PictureFrame>
 
   We can do the same for the point $(0, 1)$ at the top of the unit circle. This point can be written as
 
@@ -96,6 +98,8 @@ For a more detailed explanation on how we get to that, read on below:
   x' = y (-\sin \alpha)\\
   y' = y \cos \alpha
   $$
+
+  <PictureFrame noborder>![Rotation of a point on the Y axis](/img/04-transforms/fig4-rotation-y.png)</PictureFrame>
 
   Now we know how to rotate any point in the $x$ axis and any point in the $y$ axis. Because any two-dimensional vector $(x, y)$ can be represented as the sum $(x, 0) + (0, y)$, it follows that if we rotate those two vertices around the origin and add them together the result will equal the rotated $(x, y)$. That means we can simply add both formulas together to get
 
@@ -131,9 +135,12 @@ $$
 
 How this works may be easier to understand visually:
 
-// diagram of 3d rotation
+<PictureFrame noborder>![Rotation along the Y axis in 3D](/img/04-transforms/fig5-rotation-3d.png)</PictureFrame>
 
 This way of doing 3D rotations is called [Euler angle](https://en.wikipedia.org/wiki/Euler_angles) rotation, and it's the easiest way to do it. You may have noticed the order in which rotations are applied changes the result, which is an important thing to keep in mind when using Euler angles for rotation.
+
+
+<PictureFrame noborder fullWidth>![Order of rotations](/img/04-transforms/fig6-rotation-order.png)</PictureFrame>
 
 A better way of representing rotation in a 3D space is [quaternions](https://en.wikipedia.org/wiki/Quaternion), which work independently of order and resolve some problems with Euler rotation, particularly gimbal lock. Quaternions, however, involve some complicated and confusing math, and I don't understand them nearly well enough to explain them myself, so we won't be using them in this lesson. Euler angle rotation works well enough for our purposes, but keep in mind quaternions will often show up whenever 3D rotations are involved.
 
@@ -153,7 +160,7 @@ If you don't remember how matrix multiplication works, or if you have no idea wh
   - It's non-commutative, which means the order of operands does change the result
   - The number of columns of the first matrix must match the number of rows of the second, and the result will have the number of rows of the first matrix and the number of columns of the second.
 
-  // diagram of rows and columns exact
+  <PictureFrame noborder>![Matrix multiplication rules](/img/04-transforms/fig7-matrices.png)</PictureFrame>
 
   To multiply two matrices $A_{l \times m} \times B_{m \times n}$, we define the result $C_{l \times n}$ such that
 
@@ -163,7 +170,7 @@ If you don't remember how matrix multiplication works, or if you have no idea wh
 
   or, in layman's terms, for each cell in the result matrix $C$ we take the row from $A$ where that cell is, the column from $B$ where the cell is, and add the products of their numbers in order:
 
-  // diagram of matrix multiplication
+  <PictureFrame noborder>![Matrix multiplication](/img/04-transforms/fig8-matrix-mul.png)</PictureFrame>
 
   Notice how this is why $C$ must have the number of rows of $A$ and the number of columns of $B$, and also why the number of columns in $A$ must match the number of rows in $B$.
 </Details>
@@ -453,9 +460,9 @@ Fortunately for us, that problem has a simple solution: we can just add a row an
 
 Now we can compose all transforms into a single matrix. One critical thing to note here is that **the translation matrix must be applied last**. Unlike scale, the order does matter and the results are very different:
 
-// diagram of rotate->translate vs translate->rotate
+<PictureFrame noborder fullWidth>![Rotation and translation order](/img/04-transforms/fig9-transform-order.png)</PictureFrame>
 
-As you can see, if we rotate after translating our vertices will get flung way out into the distance. That's why it's important to always apply the translation last. With that in mind, let's go.
+As you can see, if we rotate after translating our vertices will get moved far away from their intended position. That's why it's important to always apply the translation last. With that in mind, let's go.
 
 $$
 T = U(t_x, t_y, t_z) \times S(s_x, s_y, s_z) \times R_z(\gamma) \times R_y(\beta) \times R_x(\alpha)

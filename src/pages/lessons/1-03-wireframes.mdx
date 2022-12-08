@@ -85,7 +85,7 @@ The process of converting 3D coordinates to 2D is called *projection*, because w
 
 Projecting 3D coordinates onto a 2D plane is very simple if we define the plane to be perpendicular to one of the three axes. In our case, we'll use the $z$ axis, as if the camera was positioned at the origin $(0, 0, 0)$ and pointing towards the positive Z axis:
 
-// 3D diagram of a camera pointing toward positive Z
+<PictureFrame noborder>![Camera pointing towards positive Z axis](/img/03-wireframes/fig1-camera.png)</PictureFrame>
 
 Projection happens for each point, or vertex, in 3D space. Because we're looking directly along the $z$ axis, that will be our *depth*, or how far a vertex is from the camera. The other variable that will define how we transform $x$ and $y$ is the camera's *focal length*.
 
@@ -95,11 +95,11 @@ Unlike a real camera, where the image plane is behind the lens, in computer grap
 
 The way projection works is fairly straightforward: we define our focal plane perpendicular to the $z$ axis at $z = 0$, and place the "camera" at $(x, y, z) = (0, 0, -f)$ where $f$ is the focal length. Then, for each vertex we draw a line from the vertex to the camera, take the position where it intersects the plane, and throw away $z$ to get a 2D vector:
 
-// 3D diagram of vertices intersecting the plane
+<PictureFrame noborder>![Vertices projected onto a plane](/img/03-wireframes/fig2-projection.png)</PictureFrame>
 
 Since we're dealing with straight lines, the math is very simple. It also works the exact same way for the $x$ and $y$ axes, so we can do the math in 2D and apply it twice. Let's look at a top-down view, ignoring the $y$ axis:
 
-// Top down diagram of projection
+<PictureFrame noborder>![Top-down view of projection](/img/03-wireframes/fig3-projection-2d.png)</PictureFrame>
 
 For any vertex, we can draw a rectangular triangle with the points
 
@@ -115,9 +115,9 @@ $$
 
 This is easier to understand visually, so let's look at a diagram.
 
-// Top down diagram of triangles
+<PictureFrame noborder>![Top down view of projection showing triangles](/img/03-wireframes/fig4-triangles.png)</PictureFrame>
 
-We know these triangles are what's called *similar triangles*, meaning they have the same angles—in other words, they're uniformly scaled up or down versions of one another. A property of similar triangles is that the scale is equal for all sides, which in our case means
+We know these triangles are what's called *similar triangles*, meaning they have the same angles—in other words, they're uniformly scaled up or down versions of one another. A property of similar triangles is that the ratio of one triangle to another is equal for all sides, which in our case means
 
 $$
 \frac{f}{z - (-f)} = \frac{x' - 0}{x - 0}\\
@@ -213,6 +213,8 @@ const cube = new Object3D({
 </CodeBlock>
 
 Then, we'll connect the vertices with triangles. This part can be a little confusing, so take your time and try to understand how we're connecting the vertices to make triangles. I always get a pen and paper, draw the vertices with their indices, and start connecting them; it's much easier to see on paper than it is in your head.
+
+<PictureFrame noborder>![Diagram showing how to connect the vertices of a cube](/img/03-wireframes/fig5-vertices.png)</PictureFrame>
 
 <CodeBlock>
 ```typescript

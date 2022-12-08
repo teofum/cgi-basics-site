@@ -1,12 +1,14 @@
 ---
-const { caption, ...props } = Astro.props;
+const { caption, noborder, fullWidth, ...props } = Astro.props;
 ---
 
 <picture class="w-full flex flex-col items-center my-8" {...props}>
   <div
-    class="
-      w-full max-w-sm flex
-      rounded-lg border border-gray-200 overflow-hidden"
+    class:list={[
+      'w-full flex rounded-lg overflow-hidden',
+      { 'border border-gray-200': !noborder },
+      { 'max-w-sm': !fullWidth },
+    ]}
   >
     <slot />
   </div>

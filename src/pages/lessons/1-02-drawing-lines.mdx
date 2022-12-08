@@ -27,7 +27,11 @@ private drawLine(start: Vec2, end: Vec2, color: number) {
 ```
 </CodeBlock>
 
-Next, we need to figure out exactly which points make up the line from start to end. Feel free to try finding a solution yourself before you keep reading.
+Next, we need to figure out exactly which points make up the line from start to end. This is easy enough to do with a pen and a piece of grid paper: just draw a line from A to B, and fill in any squares the line crosses over.
+
+<PictureFrame noborder>![A line drawn on grid paper](/img/02-lines/fig1-line.png)</PictureFrame>
+
+The tricky part will be telling a computer how to do this, and that's what we'll learn now. Feel free to try finding a solution yourself before you keep reading.
 
 ## Defining a line
 
@@ -407,7 +411,7 @@ This version does away with iterating over a "master" axis, and instead accumula
 
   We can simplify this decision into two cases: if $m < 2$, we have to advance along $x$, and if $m > \frac{1}{2}$ we advance along $y$. These conditions aren't mutually exclusive, so if both are true we'll move along both axes. This can be easier to understand visually:
 
-  <PictureFrame>![Graph showing slope](/img/02-lines/graph.svg)</PictureFrame>
+  <PictureFrame noborder>![Graph showing slope](/img/02-lines/fig2-graph.png)</PictureFrame>
 
   The diagram only covers positive values since $dx$ and $dy$ are always positive, but remember the line can be going in any direction depending on the values of $s_x$ and $s_y$.
 
